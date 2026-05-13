@@ -29,7 +29,7 @@ jobs:
           - Linux ARMv7 Legacy
         include:
           - os: Windows
-            runner: windows-latest
+            runner: windows-2022
             arch: windows-x86_64
           - os: Linux x86_64
             runner: ubuntu-latest
@@ -93,7 +93,9 @@ jobs:
             -w /work \
             python:${{ matrix.python-version }}-bookworm \
             bash -c "
+              set -e
               python --version
+              source os_dependencies/linux_armv7_docker_prepare.sh
               python -m pip install --upgrade pip
               pip install -r build_requirements.txt
               python test_wheels_install.py
@@ -107,12 +109,16 @@ jobs:
             -w /work \
             python:${{ matrix.python-version }}-bullseye \
             bash -c "
+              set -e
               python --version
+              source os_dependencies/linux_armv7_docker_prepare.sh
               python -m pip install --upgrade pip
               pip install -r build_requirements.txt
               python test_wheels_install.py
             "
 
+      # After test_wheels_install.py, ./downloaded_wheels contains only wheels for this
+      # matrix Python + platform (see prune step in test_wheels_install.main).
       - name: Upload tested wheels
         uses: actions/upload-artifact@v4
         with:

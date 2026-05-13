@@ -222,6 +222,52 @@ class TestWheelCompatibility(unittest.TestCase):
         self.assertTrue(self.is_wheel_compatible(f"cryptography-41.0.0-cp39-abi3-{tag}.whl", "39"))
 
 
+class TestPruneWheelsForArtifact(unittest.TestCase):
+    """``prune_wheels_not_for_current_python`` keeps per-matrix wheels for CI artifacts."""
+
+    def test_prune_removes_other_python_same_platform(self):
+        import tempfile
+
+        from test_wheels_install import prune_wheels_not_for_current_python
+
+        tag = _current_platform_wheel_tag()
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / f"drop-1.0-cp310-cp310-{tag}.whl").write_bytes(b"a")
+            (d / f"keep-1.0-cp311-cp311-{tag}.whl").write_bytes(b"b")
+            (d / "universal-1.0-py3-none-any.whl").write_bytes(b"c")
+
+            removed = prune_wheels_not_for_current_python("311", d)
+            self.assertEqual(removed, 1)
+            self.assertFalse((d / f"drop-1.0-cp310-cp310-{tag}.whl").exists())
+            self.assertTrue((d / f"keep-1.0-cp311-cp311-{tag}.whl").exists())
+            self.assertTrue((d / "universal-1.0-py3-none-any.whl").exists())
+
+
+class TestGetPipWheelExtraArgs(unittest.TestCase):
+    def test_bleak_winrt_windows_no_build_isolation(self) -> None:
+        from _helper_functions import get_pip_wheel_extra_args
+
+        with patch("_helper_functions.platform.system", return_value="Windows"):
+            self.assertEqual(
+                get_pip_wheel_extra_args("bleak-winrt==1.2.0"),
+                ["--no-build-isolation"],
+            )
+            self.assertEqual(get_pip_wheel_extra_args("bleak_winrt"), ["--no-build-isolation"])
+
+    @patch("_helper_functions.platform.system", return_value="Linux")
+    def test_bleak_winrt_not_on_linux(self, _sys: object) -> None:
+        from _helper_functions import get_pip_wheel_extra_args
+
+        self.assertEqual(get_pip_wheel_extra_args("bleak-winrt"), [])
+
+    @patch("_helper_functions.platform.system", return_value="Windows")
+    def test_other_packages_unchanged(self, _sys: object) -> None:
+        from _helper_functions import get_pip_wheel_extra_args
+
+        self.assertEqual(get_pip_wheel_extra_args("cryptography"), [])
+
+
 class TestParseWheelName(unittest.TestCase):
     """Test the parse_wheel_name function from _helper_functions.py."""
 

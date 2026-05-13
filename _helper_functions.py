@@ -37,19 +37,10 @@ from packaging.version import InvalidVersion
 from packaging.version import Version
 from packaging.version import parse as parse_version
 
-# Packages that should be built from source on Linux to ensure correct library linking
-# These packages often have pre-built wheels on PyPI that link against different library versions
-# NOTE: This only applies to Linux (especially ARM) - Windows and macOS pre-built wheels work fine
-# NOTE: Do NOT add packages with Rust components (cryptography, pynacl, bcrypt) here
-# as they have complex build requirements and may not support all Python versions
-FORCE_SOURCE_BUILD_PACKAGES_LINUX = [
-    "cffi",
-    "pillow",
-    "pyyaml",
-    "brotli",
-    "greenlet",
-    "bitarray",
-]
+# Linux ``--no-binary`` names: one per line in ``force_no_binary_linux.txt`` (also ``PIP_NO_BINARY`` in ARMv7 Docker).
+
+_REPO_ROOT = Path(__file__).resolve().parent
+FORCE_NO_BINARY_LINUX_FILE = "force_no_binary_linux.txt"
 
 EXCLUDE_LIST_PATH = "exclude_list.yaml"
 
@@ -105,6 +96,8 @@ def wheel_archive_is_readable(path: Path) -> bool:
 _PYPI_REQUIRES_PYTHON_CACHE: Dict[Tuple[str, str], Optional[str]] = {}
 # Full project JSON per canonical package name; None means fetch failed (cached)
 _PYPI_PROJECT_JSON_CACHE: Dict[str, Optional[Dict[str, Any]]] = {}
+# force_no_binary_linux.txt: resolved repo root -> (names, normalized names for lookup)
+_FORCE_NO_BINARY_LINUX_CACHE: Dict[Path, Tuple[List[str], frozenset[str]]] = {}
 
 
 def _pypi_user_agent() -> str:
@@ -255,6 +248,38 @@ def exclude_entry_applies_to_platform(entry: dict, current_platform: str) -> boo
     return False
 
 
+def load_force_no_binary_linux_names(repo_root: Path | None = None) -> list[str]:
+    """Package names for Linux ``--no-binary`` / ``PIP_NO_BINARY`` (``force_no_binary_linux.txt``)."""
+    root = (repo_root if repo_root is not None else _REPO_ROOT).resolve()
+    cached = _FORCE_NO_BINARY_LINUX_CACHE.get(root)
+    if cached is not None:
+        return cached[0]
+    path = root / FORCE_NO_BINARY_LINUX_FILE
+    out: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            out.append(line)
+    if not out:
+        raise ValueError(f"{path}: need at least one non-comment package name")
+    normalized = frozenset(pkg.lower().replace("-", "_") for pkg in out)
+    _FORCE_NO_BINARY_LINUX_CACHE[root] = (out, normalized)
+    return out
+
+
+def _force_no_binary_linux_normalized(repo_root: Path | None = None) -> frozenset[str]:
+    """
+    Normalized package names from ``force_no_binary_linux.txt``
+    (cached with ``load_force_no_binary_linux_names``).
+    """
+    root = (repo_root if repo_root is not None else _REPO_ROOT).resolve()
+    cached = _FORCE_NO_BINARY_LINUX_CACHE.get(root)
+    if cached is not None:
+        return cached[1]
+    load_force_no_binary_linux_names(root)
+    return _FORCE_NO_BINARY_LINUX_CACHE[root][1]
+
+
 def get_no_binary_args(requirement_name: str) -> list:
     """Get --no-binary arguments if this package should be built from source.
 
@@ -277,10 +302,28 @@ def get_no_binary_args(requirement_name: str) -> list:
         return []
     pkg_name = match.group(1).lower().replace("-", "_")
 
-    for pkg in FORCE_SOURCE_BUILD_PACKAGES_LINUX:
-        if pkg.lower().replace("-", "_") == pkg_name:
-            return ["--no-binary", match.group(1)]
+    if pkg_name in _force_no_binary_linux_normalized(_REPO_ROOT):
+        return ["--no-binary", match.group(1)]
     return []
+
+
+def get_pip_wheel_extra_args(requirement_name: str) -> list[str]:
+    """Extra ``pip wheel`` CLI flags for packages with known CI build quirks.
+
+    ``bleak-winrt`` 1.2.0 uses legacy ``scikit-build``, whose MSVC probe only accepts
+    the compiler version band for the generator it tries (e.g. 1930–1949 for VS 2022).
+    GHA ``windows-latest`` can expose VS 2025 (MSVC 19.50) by default, which fails that
+    probe when building from the sdist under PEP 517 isolation. Use the host env
+    (after ``setup-msvc-dev`` on ``windows-2022`` with VS 17.x) and ``--no-build-isolation``.
+    """
+    if platform.system() != "Windows":
+        return []
+    match = re.match(r"^([a-zA-Z0-9_.-]+)", str(requirement_name).strip())
+    if not match:
+        return []
+    if canonicalize_name(match.group(1)) != canonicalize_name("bleak-winrt"):
+        return []
+    return ["--no-build-isolation"]
 
 
 def _safe_text_for_stdout(text: str) -> str:

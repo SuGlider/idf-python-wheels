@@ -33,7 +33,8 @@ jobs:
           - Linux ARMv7 Legacy
         include:
           - os: Windows
-            runner: windows-latest
+            # VS 2022 / v143 required (bleak-winrt); windows-latest is VS 2026 from ~Jun 2026
+            runner: windows-2022
             arch: windows-x86_64
           - os: Linux x86_64
             runner: ubuntu-latest
@@ -117,6 +118,27 @@ jobs:
         if: matrix.os == 'Windows'
         run: powershell -ExecutionPolicy Bypass -File os_dependencies/windows.ps1
 
+      - name: Locate Visual Studio 2022
+        if: matrix.os == 'Windows'
+        id: vs2022
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $path = & $vswhere -version "[17.0,18.0)" -latest -property installationPath
+          if (-not $path) {
+            throw "Visual Studio 2022 (17.x) not found on this runner."
+          }
+          Write-Host "Using Visual Studio at: $path"
+          "path=$path" >> $env:GITHUB_OUTPUT
+
+      - name: Enable MSVC developer environment
+        if: matrix.os == 'Windows'
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
+          # bleak-winrt (scikit-build) rejects MSVC 19.50 when probing VS 2022 generators
+          vs-path: ${{ steps.vs2022.outputs.path }}
+
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
@@ -140,10 +162,13 @@ jobs:
             -e PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 \
             -e GH_TOKEN="${GH_TOKEN}" \
             -e PIP_NO_CACHE_DIR=1 \
+            -e PIP_INDEX_URL=https://www.piwheels.org/simple \
+            -e PIP_EXTRA_INDEX_URL=https://pypi.org/simple \
             python:${{ matrix.python-version }}-bookworm \
             bash -c "
               set -e
               python --version
+              source os_dependencies/linux_armv7_docker_prepare.sh
               # Install pip packages without cache to reduce memory usage
               python -m pip install --no-cache-dir --upgrade pip
               python -m pip install --no-cache-dir -r build_requirements.txt
@@ -163,10 +188,13 @@ jobs:
             -e PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1 \
             -e GH_TOKEN="${GH_TOKEN}" \
             -e PIP_NO_CACHE_DIR=1 \
+            -e PIP_INDEX_URL=https://www.piwheels.org/simple \
+            -e PIP_EXTRA_INDEX_URL=https://pypi.org/simple \
             python:${{ matrix.python-version }}-bullseye \
             bash -c "
               set -e
               python --version
+              source os_dependencies/linux_armv7_docker_prepare.sh
               # Install pip packages without cache to reduce memory usage
               python -m pip install --no-cache-dir --upgrade pip
               python -m pip install --no-cache-dir -r build_requirements.txt

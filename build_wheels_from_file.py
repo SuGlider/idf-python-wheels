@@ -17,6 +17,7 @@ from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
 from _helper_functions import get_no_binary_args
+from _helper_functions import get_pip_wheel_extra_args
 from _helper_functions import print_color
 from _helper_functions import pypi_requires_python_preflight_skip
 
@@ -136,6 +137,7 @@ if requirements_dir:
             continue
         # Get no-binary args for packages that should be built from source
         no_binary_args = get_no_binary_args(requirement)
+        extra_pip_args = get_pip_wheel_extra_args(requirement)
         force_interpreter_args = (
             _force_interpreter_no_binary_args(requirement)
             if _apply_force_interpreter_binary(args.force_interpreter_binary)
@@ -155,6 +157,7 @@ if requirements_dir:
                 "downloaded_wheels",
             ]
             + no_binary_args
+            + extra_pip_args
             + force_interpreter_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -189,6 +192,7 @@ else:
             continue
         # Get no-binary args for packages that should be built from source
         no_binary_args = get_no_binary_args(requirement)
+        extra_pip_args = get_pip_wheel_extra_args(requirement)
         force_interpreter_args = (
             _force_interpreter_no_binary_args(requirement)
             if _apply_force_interpreter_binary(args.force_interpreter_binary)
@@ -208,6 +212,7 @@ else:
                 "downloaded_wheels",
             ]
             + no_binary_args
+            + extra_pip_args
             + force_interpreter_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

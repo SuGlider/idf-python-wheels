@@ -57,23 +57,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up QEMU for ARMv7
         if: matrix.os == 'Linux ARMv7' || matrix.os == 'Linux ARMv7 Legacy'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: linux/arm/v7
 
       - name: Download all repaired wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wheels-repaired-all
           path: ./downloaded_wheels
 
       - name: Setup Python
         if: matrix.os != 'Linux ARMv7' && matrix.os != 'Linux ARMv7 Legacy'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -120,7 +120,7 @@ jobs:
       # After test_wheels_install.py, ./downloaded_wheels contains only wheels for this
       # matrix Python + platform (see prune step in test_wheels_install.main).
       - name: Upload tested wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-tested-${{ matrix.arch }}-${{ matrix.python-version }}
           path: ./downloaded_wheels/*.whl

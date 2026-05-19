@@ -29,13 +29,13 @@ jobs:
       PREFIX: 'pypi'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install dependencies
         run: python -m pip install -r build_requirements.txt
 
       - name: Download tested wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: wheels-tested-*
           path: ./downloaded_wheels

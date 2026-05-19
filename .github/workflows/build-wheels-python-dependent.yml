@@ -78,17 +78,17 @@ jobs:
     steps:
       - name: Set up QEMU for ARMv7
         if: matrix.os == 'Linux ARMv7' || matrix.os == 'Linux ARMv7 Legacy'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: linux/arm/v7
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
         # Skip setting python on ARMv7 (runs in Docker)
         if: matrix.os != 'Linux ARMv7' && matrix.os != 'Linux ARMv7 Legacy'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
             python-version: ${{ matrix.python-version }}
 
@@ -140,7 +140,7 @@ jobs:
           vs-path: ${{ steps.vs2022.outputs.path }}
 
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dependent_requirements_${{ matrix.arch }}
           path: dependent_requirements_${{ matrix.arch }}
@@ -225,7 +225,7 @@ jobs:
         run: sudo chown -R $USER:$USER ./downloaded_wheels
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-${{ matrix.arch }}-${{ matrix.python-version }}
           if-no-files-found: ignore

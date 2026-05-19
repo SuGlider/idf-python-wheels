@@ -66,10 +66,10 @@ jobs:
         python-version: ${{ fromJson(needs.get-supported-versions.outputs.supported_python) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version}}
 
@@ -89,7 +89,7 @@ jobs:
           python build_wheels_from_file.py --requirements ${{ inputs.packages }}
 
       - name: Upload artifacts of downloaded_wheels directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-linux-x86_64-${{ matrix.python-version }}
           path: ./downloaded_wheels
@@ -106,10 +106,10 @@ jobs:
         python-version: ${{ fromJson(needs.get-supported-versions.outputs.supported_python) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version}}
 
@@ -129,7 +129,7 @@ jobs:
           python build_wheels_from_file.py --requirements ${{ inputs.packages }}
 
       - name: Upload artifacts of downloaded_wheels directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-windows-x86_64-${{ matrix.python-version }}
           path: ./downloaded_wheels
@@ -146,10 +146,10 @@ jobs:
         python-version: ${{ fromJson(needs.get-supported-versions.outputs.supported_python) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version}}
 
@@ -171,7 +171,7 @@ jobs:
           python build_wheels_from_file.py --requirements ${{ inputs.packages }}
 
       - name: Upload artifacts of downloaded_wheels directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-macos-x86_64-${{ matrix.python-version }}
           path: ./downloaded_wheels
@@ -188,7 +188,7 @@ jobs:
         python-version: ${{ fromJson(needs.get-supported-versions.outputs.supported_python) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
         # Temporary solution until Python version for build will be >= 3.10 (GitHub action support)
@@ -223,7 +223,7 @@ jobs:
           python build_wheels_from_file.py --requirements ${{ inputs.packages }}
 
       - name: Upload artifacts of downloaded_wheels directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-macos-arm64-${{ matrix.python-version }}
           path: ./downloaded_wheels
@@ -240,12 +240,12 @@ jobs:
         python-version: ${{ fromJson(needs.get-supported-versions.outputs.supported_python) }}
     steps:
       - name: Set up QEMU for ARMv7
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: linux/arm/v7
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build wheels - ARMv7 (in Docker)
         run: |
@@ -271,7 +271,7 @@ jobs:
             "
 
       - name: Upload artifacts of downloaded_wheels directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-linux-armv7-${{ matrix.python-version }}
           path: ./downloaded_wheels
@@ -289,7 +289,7 @@ jobs:
     container: python:${{ matrix.python-version }}-bookworm
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Get Python version
         run: |
@@ -307,7 +307,7 @@ jobs:
           python build_wheels_from_file.py --requirements ${{ inputs.packages }}
 
       - name: Upload artifacts of downloaded_wheels directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-linux-arm64-${{ matrix.python-version }}
           path: ./downloaded_wheels
@@ -327,12 +327,12 @@ jobs:
           - python-version: '3.14'
     steps:
       - name: Set up QEMU for ARMv7
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: linux/arm/v7
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build wheels - ARMv7 Legacy (in Docker)
         # Build on Bullseye (glibc 2.31) for compatibility with older systems
@@ -359,7 +359,7 @@ jobs:
             "
 
       - name: Upload artifacts of downloaded_wheels directory
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-download-directory-linux-armv7legacy-${{ matrix.python-version }}
           path: ./downloaded_wheels
@@ -392,7 +392,7 @@ jobs:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Get latest Python version
         id: python-version
@@ -402,7 +402,7 @@ jobs:
           echo "version=$LATEST" >> $GITHUB_OUTPUT
 
       - name: Setup Python ${{ steps.python-version.outputs.version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ steps.python-version.outputs.version }}
 

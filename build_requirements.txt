@@ -19,3 +19,7 @@ setuptools-scm>=6.2,<9      # Required by packages using git-based versioning
 setuptools-rust>=1.5.0,<2   # Required by packages with Rust extensions (e.g., cryptography, bleak, rpds-py)
 cython>=0.29.0              # Required by packages using Cython (e.g., coverage, pyyaml speedups)
 poetry-core>=1.0.0          # Required as build backend for packages using Poetry
+# bleak-winrt (scikit-build) on Windows: used with --no-build-isolation in CI
+scikit-build>=0.18.0
+cmake>=3.16
+ninja>=1.10

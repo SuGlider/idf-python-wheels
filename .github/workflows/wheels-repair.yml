@@ -26,7 +26,7 @@ jobs:
           - Linux ARMv7 Legacy
         include:
           - platform: Windows
-            runner: windows-latest
+            runner: windows-2022
             tool: delvewheel
             arch: windows-x86_64
           - platform: macOS ARM
@@ -71,10 +71,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download wheel artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           # Download only artifacts for this specific architecture to avoid mixing wheels
           # (especially important for ARMv7 vs ARMv7 Legacy which produce same-named wheels)
@@ -96,13 +96,13 @@ jobs:
 
       - name: Setup Python
         if: steps.check-wheels.outputs.has_wheels == 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Set up QEMU
         if: matrix.setup_qemu && steps.check-wheels.outputs.has_wheels == 'true'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: ${{ matrix.qemu_platform }}
 
@@ -161,6 +161,9 @@ jobs:
         run: |
           docker run --rm \
             --platform ${{ matrix.docker_platform }} \
+            -e AUDITWHEEL_PLAT=manylinux_2_36_armv7l \
+            -e AUDITWHEEL_ONLY_PLAT=1 \
+            -e AUDITWHEEL_ALLOW_LINUX_TAG=1 \
             -v $(pwd):/work \
             -w /work \
             ${{ matrix.docker_image }} \
@@ -177,6 +180,9 @@ jobs:
         run: |
           docker run --rm \
             --platform ${{ matrix.docker_platform }} \
+            -e AUDITWHEEL_PLAT=manylinux_2_31_armv7l \
+            -e AUDITWHEEL_ONLY_PLAT=1 \
+            -e AUDITWHEEL_ALLOW_LINUX_TAG=1 \
             -v $(pwd):/work \
             -w /work \
             ${{ matrix.docker_image }} \
@@ -189,7 +195,7 @@ jobs:
 
       - name: Re-upload artifacts with repaired wheels
         if: steps.check-wheels.outputs.has_wheels == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-repaired-${{ matrix.arch }}
           path: ./downloaded_wheels
@@ -201,12 +207,26 @@ jobs:
     needs: repair-wheels
     runs-on: ubuntu-latest
     steps:
-      - name: Download all repaired wheels
-        uses: actions/download-artifact@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      # Download each wheels-repaired-* artifact into its own subdirectory so
+      # same-named wheels from ARMv7 vs ARMv7 Legacy are not silently overwritten
+      # before ARMv7-specific collision detection or S3 upload (see README: ARMv7 wheel collisions).
+      - name: Download all repaired wheels (per-artifact subdirectories)
+        uses: actions/download-artifact@v8
         with:
           pattern: wheels-repaired-*
-          path: ./all_wheels
-          merge-multiple: true
+          path: ./all_wheels_staging
+          merge-multiple: false
+
+      - name: Check for ARMv7 vs ARMv7 Legacy wheel basename clash
+        run: python3 check_wheel_collisions.py ./all_wheels_staging
+
+      - name: Flatten merged wheels directory
+        run: |
+          mkdir -p ./all_wheels
+          find ./all_wheels_staging -type f -name '*.whl' -exec cp -f {} ./all_wheels/ \;
 
       - name: List merged wheels
         run: |
@@ -214,7 +234,7 @@ jobs:
           find ./all_wheels -name "*.whl" | wc -l
 
       - name: Upload merged wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-repaired-all
           path: ./all_wheels

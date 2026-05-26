@@ -76,9 +76,10 @@ for full_path, wheel in wheel_paths:
         wheel_name = match.group(1)
         wheel_name = normalize(wheel_name)
 
-        is_new = f"pypi/{wheel_name}/{wheel}" not in existing_wheels
+        s3_key = f"pypi/{wheel_name}/{wheel}"
+        is_new = s3_key not in existing_wheels
 
-        BUCKET.upload_file(full_path, f"pypi/{wheel_name}/{wheel}", ExtraArgs={"ACL": "public-read"})
+        BUCKET.upload_file(full_path, s3_key, ExtraArgs={"ACL": "public-read"})
 
         if is_new:
             new_wheels += 1

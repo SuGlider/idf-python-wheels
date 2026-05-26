@@ -29,7 +29,7 @@ jobs:
           - Linux ARMv7 Legacy
         include:
           - os: Windows
-            runner: windows-latest
+            runner: windows-2022
             arch: windows-x86_64
           - os: Linux x86_64
             runner: ubuntu-latest
@@ -57,23 +57,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up QEMU for ARMv7
         if: matrix.os == 'Linux ARMv7' || matrix.os == 'Linux ARMv7 Legacy'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
           platforms: linux/arm/v7
 
       - name: Download all repaired wheels
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wheels-repaired-all
           path: ./downloaded_wheels
 
       - name: Setup Python
         if: matrix.os != 'Linux ARMv7' && matrix.os != 'Linux ARMv7 Legacy'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -93,7 +93,9 @@ jobs:
             -w /work \
             python:${{ matrix.python-version }}-bookworm \
             bash -c "
+              set -e
               python --version
+              source os_dependencies/linux_armv7_docker_prepare.sh
               python -m pip install --upgrade pip
               pip install -r build_requirements.txt
               python test_wheels_install.py
@@ -107,14 +109,18 @@ jobs:
             -w /work \
             python:${{ matrix.python-version }}-bullseye \
             bash -c "
+              set -e
               python --version
+              source os_dependencies/linux_armv7_docker_prepare.sh
               python -m pip install --upgrade pip
               pip install -r build_requirements.txt
               python test_wheels_install.py
             "
 
+      # After test_wheels_install.py, ./downloaded_wheels contains only wheels for this
+      # matrix Python + platform (see prune step in test_wheels_install.main).
       - name: Upload tested wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-tested-${{ matrix.arch }}-${{ matrix.python-version }}
           path: ./downloaded_wheels/*.whl

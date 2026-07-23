@@ -2,8 +2,8 @@ name: Update README and pyproject.toml with supported versions
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 6 * * 1'  # Weekly on Monday at 6 AM UTC (after main builds)
+#  schedule:
+#    - cron: '0 6 * * 1'  # Weekly on Monday at 6 AM UTC (after main builds)
   workflow_run:
     workflows: ["platforms-dispatches"]
     types: [completed]
